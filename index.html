@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Checker Intelligente</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #0f172a;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 2rem 1rem;
+            display: flex;
+            justify-content: center;
+        }
+        .container { max-width: 1100px; width: 100%; }
+        h1 { text-align: center; margin-bottom: 0.5rem; color: var(--primary); }
+        .subtitle { text-align: center; color: var(--text-light); margin-bottom: 2rem; }
+        .grid-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        @media (max-width: 768px) { .grid-inputs { grid-template-columns: 1fr; } }
+        .card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+        label { display: block; font-weight: 600; margin-bottom: 0.25rem; }
+        .instructions { font-size: 0.85rem; color: var(--text-light); margin-bottom: 0.75rem; }
+        textarea {
+            width: 100%;
+            height: 250px;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: monospace;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        textarea:focus { outline: 2px solid var(--primary); border-color: transparent; }
+        .btn-container { text-align: center; margin: 2rem 0; }
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 2.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+        }
+        button:hover { background-color: var(--primary-hover); }
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+            display: none;
+        }
+        @media (max-width: 768px) { .results-grid { grid-template-columns: 1fr; } }
+        .res-card { padding: 1.25rem; border-radius: 8px; border-left: 5px solid var(--border); }
+        .res-card.danger { border-left-color: var(--danger); background: #fef2f2; }
+        .res-card.success { border-left-color: var(--success); background: #f0fdf4; }
+        .res-card h3 { margin-top: 0; display: flex; justify-content: space-between; align-items: center; }
+        .badge { font-size: 0.85rem; padding: 0.2rem 0.6rem; border-radius: 9999px; color: white; }
+        .danger .badge { background-color: var(--danger); }
+        .success .badge { background-color: var(--success); }
+        .list-output { max-height: 400px; overflow-y: auto; font-size: 0.95rem; line-height: 1.5; padding-left: 1.2rem; margin: 0; }
+        .list-output li { margin-bottom: 0.35rem; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Attendance Checker Smart 🧠</h1>
+    <p class="subtitle">Confronto intelligente a token (rileva anche i nomi invertiti o parziali)</p>
+
+    <div class="grid-inputs">
+        <div class="card">
+            <label for="officialList">1. Iscritti (da Google Sheets)</label>
+            <div class="instructions">Copia e incolla le colonne <b>Nome</b> e <b>Cognome</b> (le unisce il tool).</div>
+            <textarea id="officialList" placeholder="Mario Rossi&#10;Luigi Bianchi..."></textarea>
+        </div>
+        <div class="card">
+            <label for="rawList">2. Presenti (da Report CSV di Zoom)</label>
+            <div class="instructions">Copia e incolla la colonna <b>Name (original name)</b> di Zoom.</div>
+            <textarea id="rawList" placeholder="Rossi Mario&#10;Luigi Bianchi (Azienda)..."></textarea>
+        </div>
+    </div>
+
+    <div class="btn-container">
+        <button onclick="compareLists()">Esegui Controllo Presenze</button>
+    </div>
+
+    <div class="results-grid" id="resultsGrid">
+        <div class="res-card danger">
+            <h3>❌ Assenti <span class="badge" id="countAbsent">0</span></h3>
+            <ul class="list-output" id="listAbsent"></ul>
+        </div>
+        <div class="res-card success">
+            <h3>✅ Presenti <span class="badge" id="countPresent">0</span></h3>
+            <ul class="list-output" id="listPresent"></ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Stessa identica logica della tua funzione Python clean_name(name)
+    function cleanName(name) {
+        if (!name) return "";
+        return name.toString()
+            .trim()
+            .toLowerCase()
+            .replace(/\./g, ' ')       // Sostituisce i punti con spazi
+            .replace(/\s+/g, ' ');     // Rimuove gli spazi doppi o multipli
+    }
+
+    // Converte una stringa in Title Case per l'output finale pulito
+    function toTitleCase(str) {
+        return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+    }
+
+    function compareLists() {
+        const officialInput = document.getElementById('officialList').value;
+        const rawInput = document.getElementById('rawList').value;
+
+        // Estrae le righe eliminando quelle vuote
+        const expectedNames = officialInput.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+        const presentNames = rawInput.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+        // Pulisce e crea i set (proprio come il tuo script)
+        const setExpected = new Set(expectedNames.map(cleanName).filter(n => n !== ""));
+        const setPresent = new Set(presentNames.map(cleanName).filter(n => n !== ""));
+
+        const missingCleaned = [];
+        const presentCleaned = [];
+
+        // Algoritmo di matching basato su Token (ereditato dalla tua logica Python)
+        setExpected.forEach(expected => {
+            const expectedTokens = expected.split(" ");
+            let found = false;
+
+            for (let present of setPresent) {
+                const presentTokens = present.split(" ");
+                
+                // Calcola l'intersezione dei token (quanti elementi in comune)
+                const commonTokens = expectedTokens.filter(tok => presentTokens.includes(tok));
+                
+                // Condizione 1: Almeno 2 token in comune (es. "Mario" e "Rossi" in "Rossi Mario")
+                // Condizione 2: Tutti i token di Zoom sono contenuti nel nome atteso
+                const hasTwoCommon = commonTokens.length >= 2;
+                const allZoomInExpected = presentTokens.every(tok => expectedTokens.includes(tok));
+
+                if (hasTwoCommon || allZoomInExpected) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                missingCleaned.push(expected);
+            } else {
+                presentCleaned.push(expected);
+            }
+        });
+
+        // Mostra i risultati formattati in Title Case
+        renderList('listAbsent', 'countAbsent', missingCleaned.map(toTitleCase));
+        renderList('listPresent', 'countPresent', presentCleaned.map(toTitleCase));
+
+        document.getElementById('resultsGrid').style.display = 'grid';
+    }
+
+    function renderList(elementId, countId, list) {
+        const listElement = document.getElementById(elementId);
+        const countElement = document.getElementById(countId);
+        
+        countElement.innerText = list.length;
+        listElement.innerHTML = '';
+        
+        if (list.length === 0) {
+            listElement.innerHTML = '<li>Nessuno</li>';
+            return;
+        }
+        
+        list.forEach(item => {
+            const li = document.createElement('li');
+            li.innerText = item;
+            listElement.appendChild(li);
+        });
+    }
+</script>
+
+</body>
+</html>
