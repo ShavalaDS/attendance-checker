@@ -1,79 +1,153 @@
-import pandas as pd
 import os
+import re
+import unicodedata
 from datetime import datetime
+
+import pandas as pd
+
 
 def find_csv_file(folder):
     if not os.path.exists(folder):
         print(f"Error: Folder '{folder}' does not exist.")
         return None
-    for file in os.listdir(folder):
-        if file.endswith('.csv'):
-            return os.path.join(folder, file)
-    print(f"No CSV file found in '{folder}'.")
-    return None
+
+    csv_files = sorted(
+        os.path.join(folder, file)
+        for file in os.listdir(folder)
+        if file.lower().endswith(".csv")
+    )
+
+    if not csv_files:
+        print(f"No CSV file found in '{folder}'.")
+        return None
+
+    return csv_files[0]
+
 
 def clean_name(name):
-    if pd.isna(name): return ""
-    # Pulisce il nome: minuscolo, sostituisce i punti con spazi e toglie spazi doppi
-    return str(name).strip().lower().replace('.', ' ').replace("  ", " ")
+    if pd.isna(name):
+        return ""
+
+    text = str(name).strip().lower()
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(char for char in text if not unicodedata.combining(char))
+    text = re.sub(r"[._/\\-]+", " ", text)
+    text = re.sub(r"[^a-z0-9\s]", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def extract_names(frame, expected_mode=False):
+    if frame is None or frame.empty:
+        return []
+
+    lower_to_actual = {str(column).strip().lower(): column for column in frame.columns}
+    columns = set(lower_to_actual)
+
+    if expected_mode:
+        preferred_keys = [
+            "nome",
+            "cognome",
+            "first name",
+            "first_name",
+            "last name",
+            "last_name",
+            "surname",
+            "name",
+            "full name",
+            "full_name",
+            "name and surname",
+        ]
+
+        chosen = []
+        for key in preferred_keys:
+            actual = lower_to_actual.get(key)
+            if actual is not None:
+                chosen.append(frame[actual])
+
+        if len(chosen) >= 2:
+            names = chosen[0].fillna("").astype(str).str.strip() + " " + chosen[1].fillna("").astype(str).str.strip()
+            return names.apply(clean_name)
+
+        if chosen:
+            return chosen[0].apply(clean_name)
+
+        if len(frame.columns) >= 2:
+            first = frame.iloc[:, 0].fillna("").astype(str).str.strip()
+            second = frame.iloc[:, 1].fillna("").astype(str).str.strip()
+            return (first + " " + second).apply(clean_name)
+
+        return frame.iloc[:, 0].apply(clean_name)
+
+    if "name (original name)" in columns:
+        return frame[lower_to_actual["name (original name)"]].apply(clean_name)
+
+    for key in ["name", "full name", "full_name", "nome completo"]:
+        actual = lower_to_actual.get(key)
+        if actual is not None:
+            return frame[actual].apply(clean_name)
+
+    return frame.iloc[:, 0].apply(clean_name)
+
+
+def names_match(expected, present):
+    expected_tokens = set(filter(None, expected.split()))
+    present_tokens = set(filter(None, present.split()))
+
+    if not expected_tokens or not present_tokens:
+        return False
+
+    common = len(expected_tokens & present_tokens)
+    if common >= 2:
+        return True
+
+    return expected_tokens.issubset(present_tokens) or present_tokens.issubset(expected_tokens)
+
 
 def main():
     print("Starting attendance check...")
     file_participants = find_csv_file("1_Participants")
     file_attendees = find_csv_file("2_Attendees")
-    
+
     if not file_participants or not file_attendees:
         return
 
     try:
-        df_participants = pd.read_csv(file_participants)
-        df_attendees = pd.read_csv(file_attendees)
-        
-        # LEGGI IL FILE DEI PARTECIPANTI (Google Sheets)
-        expected_names = df_participants.iloc[:, 0].astype(str) + " " + df_participants.iloc[:, 1].astype(str)
-            
-        # LEGGI IL FILE DEI PRESENTI (Zoom)
-        if 'Name (original name)' in df_attendees.columns:
-            present_names = df_attendees['Name (original name)']
-        else:
-            present_names = df_attendees.iloc[:, 0]
+        df_participants = pd.read_csv(file_participants, encoding="utf-8-sig")
+        df_attendees = pd.read_csv(file_attendees, encoding="utf-8-sig")
 
-        # Applica la pulizia
-        set_expected = set(expected_names.apply(clean_name))
-        set_present = set(present_names.apply(clean_name))
-        
-        if "" in set_expected: set_expected.remove("")
-        if "" in set_present: set_present.remove("")
+        expected_names = extract_names(df_participants, expected_mode=True)
+        present_names = extract_names(df_attendees)
 
-        # Trova i mancanti con matching basato su token
+        set_expected = {name for name in expected_names if name}
+        set_present = {name for name in present_names if name}
+
         missing = []
-        for expected in set_expected:
-            expected_tokens = expected.split()
+        for expected in sorted(set_expected):
             found = False
             for present in set_present:
-                present_tokens = present.split()
-                common = len(set(expected_tokens) & set(present_tokens))
-                if common >= 2 or all(tok in expected_tokens for tok in present_tokens):
+                if names_match(expected, present):
                     found = True
                     break
             if not found:
                 missing.append(expected)
-        
-        # Salva il file finale
+
+        os.makedirs("3_Missing", exist_ok=True)
         today_date = datetime.now().strftime("%Y-%m-%d")
-        output_file = f"3_Missing/missing_{today_date}.csv"
-        
+        output_file = os.path.join("3_Missing", f"missing_{today_date}.csv")
+
         if missing:
-            df_missing = pd.DataFrame(list(missing), columns=["Missing Name"])
+            df_missing = pd.DataFrame(missing, columns=["Missing Name"])
             df_missing["Missing Name"] = df_missing["Missing Name"].str.title()
             df_missing.to_csv(output_file, index=False)
             print(f"✅ Check completed! Found {len(missing)} missing attendees.")
             print(f"📁 File saved at: {output_file}")
         else:
             print("🎉 No missing attendees! Everyone was present.")
-            
+
     except Exception as e:
         print(f"❌ Error: {e}")
+
 
 if __name__ == "__main__":
     main()
