@@ -13,10 +13,10 @@
             --text: #0f172a;
             --text-light: #64748b;
             --border: #e2e8f0;
-            --success: #10b981;
             --danger: #ef4444;
-            --warning: #f59e0b;
+            --success: #10b981;
         }
+        * { box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg);
@@ -26,16 +26,15 @@
             display: flex;
             justify-content: center;
         }
-        .container { max-width: 1100px; width: 100%; }
-        h1 { text-align: center; margin-bottom: 0.5rem; color: var(--primary); }
-        .subtitle { text-align: center; color: var(--text-light); margin-bottom: 2rem; }
+        .container { max-width: 900px; width: 100%; }
+        h1 { text-align: center; margin: 0 0 0.5rem; color: var(--primary); }
+        .subtitle { text-align: center; color: var(--text-light); margin: 0 0 2rem; }
         .grid-inputs {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
+            gap: 1.25rem;
         }
-        @media (max-width: 768px) { .grid-inputs { grid-template-columns: 1fr; } }
+        @media (max-width: 680px) { .grid-inputs { grid-template-columns: 1fr; } }
         .card {
             background: var(--card-bg);
             padding: 1.5rem;
@@ -43,172 +42,302 @@
             border: 1px solid var(--border);
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
         }
-        label { display: block; font-weight: 600; margin-bottom: 0.25rem; }
-        .instructions { font-size: 0.85rem; color: var(--text-light); margin-bottom: 0.75rem; }
-        textarea {
-            width: 100%;
-            height: 250px;
-            padding: 0.75rem;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-family: monospace;
-            resize: vertical;
-            box-sizing: border-box;
+        label { display: block; font-weight: 600; margin-bottom: 0.4rem; }
+        .instructions { min-height: 2.5em; font-size: 0.9rem; color: var(--text-light); margin-bottom: 1rem; }
+        .drop-zone {
+            min-height: 150px;
+            border: 2px dashed var(--border);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            text-align: center;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
         }
-        textarea:focus { outline: 2px solid var(--primary); border-color: transparent; }
-        .btn-container { text-align: center; margin: 2rem 0; }
+        .drop-zone:hover, .drop-zone.dragging { border-color: var(--primary); background: #eef2ff; }
+        .drop-zone strong { color: var(--primary); }
+        .file-name { color: var(--text); font-size: 0.9rem; overflow-wrap: anywhere; }
+        .file-input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+        .file-input:focus-visible + .drop-zone { outline: 2px solid var(--primary); }
+        .btn-container { text-align: center; margin: 1.5rem 0; }
         button {
             background-color: var(--primary);
             color: white;
             border: none;
-            padding: 0.75rem 2.5rem;
+            padding: 0.8rem 2rem;
             font-size: 1rem;
             font-weight: 600;
             border-radius: 8px;
             cursor: pointer;
-            transition: background 0.2s;
             box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
         }
-        button:hover { background-color: var(--primary-hover); }
-        .results-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            margin-top: 1.5rem;
-            display: none;
-        }
-        @media (max-width: 768px) { .results-grid { grid-template-columns: 1fr; } }
-        .res-card { padding: 1.25rem; border-radius: 8px; border-left: 5px solid var(--border); }
-        .res-card.danger { border-left-color: var(--danger); background: #fef2f2; }
-        .res-card.success { border-left-color: var(--success); background: #f0fdf4; }
-        .res-card h3 { margin-top: 0; display: flex; justify-content: space-between; align-items: center; }
-        .badge { font-size: 0.85rem; padding: 0.2rem 0.6rem; border-radius: 9999px; color: white; }
-        .danger .badge { background-color: var(--danger); }
-        .success .badge { background-color: var(--success); }
+        button:hover:not(:disabled) { background-color: var(--primary-hover); }
+        button:disabled { cursor: not-allowed; opacity: 0.5; }
+        .status { min-height: 1.5rem; text-align: center; color: var(--text-light); }
+        .status.error { color: #b91c1c; }
+        .results { display: none; margin-top: 1.5rem; }
+        .results-card { padding: 1.25rem; border-radius: 8px; border-left: 5px solid var(--danger); background: #fef2f2; }
+        .results-card.success { border-left-color: var(--success); background: #f0fdf4; }
+        .results-card h2 { margin: 0 0 1rem; font-size: 1.2rem; display: flex; justify-content: space-between; gap: 1rem; }
+        .badge { font-size: 0.85rem; padding: 0.2rem 0.6rem; border-radius: 9999px; color: white; background: var(--danger); }
+        .success .badge { background: var(--success); }
         .list-output { max-height: 400px; overflow-y: auto; font-size: 0.95rem; line-height: 1.5; padding-left: 1.2rem; margin: 0; }
         .list-output li { margin-bottom: 0.35rem; }
+        .download { display: none; margin-top: 1rem; padding: 0.6rem 1rem; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Attendance Checker Smart 🧠</h1>
-    <p class="subtitle">Confronto intelligente a token (rileva anche i nomi invertiti o parziali)</p>
+    <h1>Attendance Checker 🧠</h1>
+    <p class="subtitle">Carica i due CSV: il confronto viene eseguito direttamente nel browser.</p>
 
     <div class="grid-inputs">
         <div class="card">
-            <label for="officialList">1. Iscritti (da Google Sheets)</label>
-            <div class="instructions">Copia e incolla le colonne <b>Nome</b> e <b>Cognome</b> (le unisce il tool).</div>
-            <textarea id="officialList" placeholder="Mario Rossi&#10;Luigi Bianchi..."></textarea>
+            <label for="participantsFile">1. Elenco partecipanti</label>
+            <div class="instructions">CSV esportato da Google Sheets. Seleziona le colonne Nome e Cognome oppure una colonna col nome completo.</div>
+            <input class="file-input" id="participantsFile" type="file" accept=".csv,text/csv">
+            <label class="drop-zone" id="participantsDrop" for="participantsFile" tabindex="0">
+                <strong>Scegli il CSV</strong>
+                <span>oppure trascinalo qui</span>
+                <span class="file-name" id="participantsName">Nessun file selezionato</span>
+            </label>
         </div>
         <div class="card">
-            <label for="rawList">2. Presenti (da Report CSV di Zoom)</label>
-            <div class="instructions">Copia e incolla la colonna <b>Name (original name)</b> di Zoom.</div>
-            <textarea id="rawList" placeholder="Rossi Mario&#10;Luigi Bianchi (Azienda)..."></textarea>
+            <label for="attendeesFile">2. Report presenze Zoom</label>
+            <div class="instructions">Carica il CSV del report Zoom. Viene usata la colonna <b>Name (original name)</b>, se presente.</div>
+            <input class="file-input" id="attendeesFile" type="file" accept=".csv,text/csv">
+            <label class="drop-zone" id="attendeesDrop" for="attendeesFile" tabindex="0">
+                <strong>Scegli il CSV</strong>
+                <span>oppure trascinalo qui</span>
+                <span class="file-name" id="attendeesName">Nessun file selezionato</span>
+            </label>
         </div>
     </div>
 
     <div class="btn-container">
-        <button onclick="compareLists()">Esegui Controllo Presenze</button>
+        <button id="compareButton" type="button" disabled>Controlla le presenze</button>
+        <p class="status" id="status" role="status" aria-live="polite">Seleziona entrambi i file CSV per iniziare.</p>
     </div>
 
-    <div class="results-grid" id="resultsGrid">
-        <div class="res-card danger">
-            <h3>❌ Assenti <span class="badge" id="countAbsent">0</span></h3>
+    <section class="results" id="results" aria-live="polite">
+        <div class="results-card" id="resultsCard">
+            <h2><span id="resultsTitle">Assenti</span><span class="badge" id="countAbsent">0</span></h2>
             <ul class="list-output" id="listAbsent"></ul>
+            <button class="download" id="downloadButton" type="button">Scarica CSV degli assenti</button>
         </div>
-        <div class="res-card success">
-            <h3>✅ Presenti <span class="badge" id="countPresent">0</span></h3>
-            <ul class="list-output" id="listPresent"></ul>
-        </div>
-    </div>
+    </section>
 </div>
 
 <script>
-    // Stessa identica logica della tua funzione Python clean_name(name)
     function cleanName(name) {
-        if (!name) return "";
-        return name.toString()
-            .trim()
+        return String(name ?? "")
+            .normalize("NFKD")
+            .replace(/[\u0300-\u036f]/g, "")
             .toLowerCase()
-            .replace(/\./g, ' ')       // Sostituisce i punti con spazi
-            .replace(/\s+/g, ' ');     // Rimuove gli spazi doppi o multipli
+            .replace(/[._/\\-]+/g, " ")
+            .replace(/[^a-z0-9\s]/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
     }
 
-    // Converte una stringa in Title Case per l'output finale pulito
     function toTitleCase(str) {
-        return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+        return str.replace(/(^|\s)\S/g, character => character.toUpperCase());
     }
 
-    function compareLists() {
-        const officialInput = document.getElementById('officialList').value;
-        const rawInput = document.getElementById('rawList').value;
+    function parseCsv(text) {
+        const firstLine = text.replace(/^\uFEFF/, "").split(/\r?\n/, 1)[0] ?? "";
+        const delimiters = [",", ";", "\t"];
+        const delimiter = delimiters.reduce((best, candidate) => {
+            const count = firstLine.split(candidate).length;
+            return count > firstLine.split(best).length ? candidate : best;
+        }, ",");
+        const rows = [];
+        let row = [];
+        let cell = "";
+        let quoted = false;
+        const input = text.replace(/^\uFEFF/, "");
 
-        // Estrae le righe eliminando quelle vuote
-        const expectedNames = officialInput.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-        const presentNames = rawInput.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-
-        // Pulisce e crea i set (proprio come il tuo script)
-        const setExpected = new Set(expectedNames.map(cleanName).filter(n => n !== ""));
-        const setPresent = new Set(presentNames.map(cleanName).filter(n => n !== ""));
-
-        const missingCleaned = [];
-        const presentCleaned = [];
-
-        // Algoritmo di matching basato su Token (ereditato dalla tua logica Python)
-        setExpected.forEach(expected => {
-            const expectedTokens = expected.split(" ");
-            let found = false;
-
-            for (let present of setPresent) {
-                const presentTokens = present.split(" ");
-                
-                // Calcola l'intersezione dei token (quanti elementi in comune)
-                const commonTokens = expectedTokens.filter(tok => presentTokens.includes(tok));
-                
-                // Condizione 1: Almeno 2 token in comune (es. "Mario" e "Rossi" in "Rossi Mario")
-                // Condizione 2: Tutti i token di Zoom sono contenuti nel nome atteso
-                const hasTwoCommon = commonTokens.length >= 2;
-                const allZoomInExpected = presentTokens.every(tok => expectedTokens.includes(tok));
-
-                if (hasTwoCommon || allZoomInExpected) {
-                    found = true;
-                    break;
+        for (let index = 0; index < input.length; index += 1) {
+            const character = input[index];
+            if (character === '"') {
+                if (quoted && input[index + 1] === '"') {
+                    cell += '"';
+                    index += 1;
+                } else {
+                    quoted = !quoted;
                 }
-            }
-
-            if (!found) {
-                missingCleaned.push(expected);
+            } else if (character === delimiter && !quoted) {
+                row.push(cell);
+                cell = "";
+            } else if ((character === "\n" || character === "\r") && !quoted) {
+                if (character === "\r" && input[index + 1] === "\n") index += 1;
+                row.push(cell);
+                if (row.some(value => value.trim() !== "")) rows.push(row);
+                row = [];
+                cell = "";
             } else {
-                presentCleaned.push(expected);
+                cell += character;
             }
-        });
+        }
 
-        // Mostra i risultati formattati in Title Case
-        renderList('listAbsent', 'countAbsent', missingCleaned.map(toTitleCase));
-        renderList('listPresent', 'countPresent', presentCleaned.map(toTitleCase));
+        if (quoted) throw new Error("Il CSV contiene un campo tra virgolette non chiuso.");
+        row.push(cell);
+        if (row.some(value => value.trim() !== "")) rows.push(row);
+        if (rows.length < 2) throw new Error("Il CSV è vuoto oppure contiene solo l'intestazione.");
 
-        document.getElementById('resultsGrid').style.display = 'grid';
+        const headers = rows[0].map(value => value.trim().toLowerCase());
+        return { headers, rows: rows.slice(1) };
     }
 
-    function renderList(elementId, countId, list) {
-        const listElement = document.getElementById(elementId);
-        const countElement = document.getElementById(countId);
-        
-        countElement.innerText = list.length;
-        listElement.innerHTML = '';
-        
-        if (list.length === 0) {
-            listElement.innerHTML = '<li>Nessuno</li>';
+    function columnIndex(headers, names) {
+        return headers.findIndex(header => names.includes(header));
+    }
+
+    function extractExpectedNames(csv) {
+        const firstNameIndex = columnIndex(csv.headers, ["nome", "first name", "first_name"]);
+        const lastNameIndex = columnIndex(csv.headers, ["cognome", "last name", "last_name", "surname"]);
+        if (firstNameIndex !== -1 && lastNameIndex !== -1) {
+            return csv.rows.map(row => cleanName(`${row[firstNameIndex] ?? ""} ${row[lastNameIndex] ?? ""}`)).filter(Boolean);
+        }
+
+        const fullNameIndex = columnIndex(csv.headers, ["name", "full name", "full_name", "name and surname", "nome completo"]);
+        if (fullNameIndex !== -1) return csv.rows.map(row => cleanName(row[fullNameIndex])).filter(Boolean);
+        if (csv.headers.length === 1) return csv.rows.map(row => cleanName(row[0])).filter(Boolean);
+        if (csv.headers.length >= 2) {
+            return csv.rows.map(row => cleanName(`${row[0] ?? ""} ${row[1] ?? ""}`)).filter(Boolean);
+        }
+        throw new Error("Non trovo colonne con i nomi nell'elenco partecipanti.");
+    }
+
+    function extractAttendeeNames(csv) {
+        const nameIndex = columnIndex(csv.headers, ["name (original name)", "name", "full name", "full_name", "nome completo"]);
+        const index = nameIndex === -1 ? 0 : nameIndex;
+        return csv.rows.map(row => cleanName(row[index])).filter(Boolean);
+    }
+
+    function namesMatch(expected, present) {
+        const expectedTokens = new Set(expected.split(" "));
+        const presentTokens = new Set(present.split(" "));
+        const common = [...expectedTokens].filter(token => presentTokens.has(token)).length;
+        return common >= 2
+            || [...expectedTokens].every(token => presentTokens.has(token))
+            || [...presentTokens].every(token => expectedTokens.has(token));
+    }
+
+    const fileInputs = [
+        { input: document.getElementById("participantsFile"), drop: document.getElementById("participantsDrop"), name: document.getElementById("participantsName") },
+        { input: document.getElementById("attendeesFile"), drop: document.getElementById("attendeesDrop"), name: document.getElementById("attendeesName") }
+    ];
+    const compareButton = document.getElementById("compareButton");
+    const statusElement = document.getElementById("status");
+    let missingNames = [];
+
+    function setFile(slot, file) {
+        if (!file) return;
+        if (!file.name.toLowerCase().endsWith(".csv")) {
+            showError("Seleziona un file CSV per entrambi gli elenchi.");
             return;
         }
-        
-        list.forEach(item => {
-            const li = document.createElement('li');
-            li.innerText = item;
-            listElement.appendChild(li);
-        });
+        const transfer = new DataTransfer();
+        transfer.items.add(file);
+        slot.input.files = transfer.files;
+        slot.name.textContent = file.name;
+        document.getElementById("results").style.display = "none";
+        statusElement.classList.remove("error");
+        statusElement.textContent = fileInputs.every(item => item.input.files.length)
+            ? "File pronti. Avvia il controllo."
+            : "Seleziona anche l'altro file CSV.";
+        compareButton.disabled = !fileInputs.every(item => item.input.files.length);
     }
+
+    function showError(message) {
+        statusElement.textContent = message;
+        statusElement.classList.add("error");
+    }
+
+    fileInputs.forEach(slot => {
+        slot.input.addEventListener("change", () => setFile(slot, slot.input.files[0]));
+        slot.drop.addEventListener("keydown", event => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                slot.input.click();
+            }
+        });
+        slot.drop.addEventListener("dragover", event => {
+            event.preventDefault();
+            slot.drop.classList.add("dragging");
+        });
+        slot.drop.addEventListener("dragleave", () => slot.drop.classList.remove("dragging"));
+        slot.drop.addEventListener("drop", event => {
+            event.preventDefault();
+            slot.drop.classList.remove("dragging");
+            setFile(slot, event.dataTransfer.files[0]);
+        });
+    });
+
+    compareButton.addEventListener("click", async () => {
+        compareButton.disabled = true;
+        statusElement.classList.remove("error");
+        statusElement.textContent = "Controllo dei file in corso...";
+        try {
+            const [participantsText, attendeesText] = await Promise.all(fileInputs.map(slot => slot.input.files[0].text()));
+            const expectedNames = [...new Set(extractExpectedNames(parseCsv(participantsText)))].sort();
+            const presentNames = [...new Set(extractAttendeeNames(parseCsv(attendeesText)))];
+            if (expectedNames.length === 0) throw new Error("Nel CSV dei partecipanti non ho trovato nomi.");
+            if (presentNames.length === 0) throw new Error("Nel CSV delle presenze non ho trovato nomi.");
+
+            missingNames = expectedNames.filter(expected => !presentNames.some(present => namesMatch(expected, present)));
+            renderResults(missingNames);
+            statusElement.textContent = `Controllo completato: ${expectedNames.length} partecipanti confrontati.`;
+        } catch (error) {
+            document.getElementById("results").style.display = "none";
+            showError(error instanceof Error ? error.message : "Non è stato possibile leggere i CSV.");
+        } finally {
+            compareButton.disabled = !fileInputs.every(slot => slot.input.files.length);
+        }
+    });
+
+    function renderResults(names) {
+        const results = document.getElementById("results");
+        const card = document.getElementById("resultsCard");
+        const title = document.getElementById("resultsTitle");
+        const list = document.getElementById("listAbsent");
+        const download = document.getElementById("downloadButton");
+        document.getElementById("countAbsent").textContent = names.length;
+        title.textContent = names.length ? "❌ Partecipanti assenti" : "✅ Tutti presenti";
+        card.classList.toggle("success", names.length === 0);
+        list.replaceChildren();
+        if (names.length === 0) {
+            const item = document.createElement("li");
+            item.textContent = "Nessun assente.";
+            list.appendChild(item);
+            download.style.display = "none";
+        } else {
+            names.forEach(name => {
+                const item = document.createElement("li");
+                item.textContent = toTitleCase(name);
+                list.appendChild(item);
+            });
+            download.style.display = "inline-block";
+        }
+        results.style.display = "block";
+    }
+
+    document.getElementById("downloadButton").addEventListener("click", () => {
+        const csv = ["Missing Name", ...missingNames.map(name => `"${toTitleCase(name).replace(/"/g, '""')}"`)].join("\r\n");
+        const url = URL.createObjectURL(new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" }));
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "missing_attendees.csv";
+        link.click();
+        URL.revokeObjectURL(url);
+    });
 </script>
 
 </body>
