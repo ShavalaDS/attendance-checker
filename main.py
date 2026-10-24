@@ -7,6 +7,9 @@ import pandas as pd
 
 
 def find_csv_file(folder):
+    """
+    Finds the first CSV file in the specified folder.
+    """
     if not os.path.exists(folder):
         print(f"Error: Folder '{folder}' does not exist.")
         return None
@@ -25,6 +28,9 @@ def find_csv_file(folder):
 
 
 def clean_name(name):
+    """
+    Normalizes a string by removing accents, punctuation, and extra spaces.
+    """
     if pd.isna(name):
         return ""
 
@@ -38,6 +44,9 @@ def clean_name(name):
 
 
 def extract_names(frame, expected_mode=False):
+    """
+    Extracts names from a DataFrame, adapting to different CSV structures.
+    """
     if frame is None or frame.empty:
         return []
 
@@ -46,13 +55,13 @@ def extract_names(frame, expected_mode=False):
 
     if expected_mode:
         preferred_keys = [
-            "nome",
-            "cognome",
             "first name",
             "first_name",
             "last name",
             "last_name",
             "surname",
+            "nome",
+            "cognome",
             "name",
             "full name",
             "full_name",
@@ -91,17 +100,39 @@ def extract_names(frame, expected_mode=False):
 
 
 def names_match(expected, present):
+    """
+    Advanced name matching logic:
+    1. Perfect match or 2+ common tokens.
+    2. Subset match (e.g., "Mario Rossi" vs "Mario Rossi Bianchi").
+    3. Initials match (e.g., "Mario Rossi" vs "Mario R.").
+    """
     expected_tokens = set(filter(None, expected.split()))
     present_tokens = set(filter(None, present.split()))
 
     if not expected_tokens or not present_tokens:
         return False
 
-    common = len(expected_tokens & present_tokens)
-    if common >= 2:
+    common = expected_tokens & present_tokens
+    
+    # 1. Perfect match or 2+ common tokens
+    if len(common) >= 2:
         return True
 
-    return expected_tokens.issubset(present_tokens) or present_tokens.issubset(expected_tokens)
+    # 2. Subset match (one list is entirely contained in the other)
+    if expected_tokens.issubset(present_tokens) or present_tokens.issubset(expected_tokens):
+        return True
+
+    # 3. Initials match (e.g., "Mario Rossi" vs "Mario R.")
+    if len(common) == 1:
+        for e_token in expected_tokens:
+            for p_token in present_tokens:
+                # Check if a short token (initial) matches the start of a long token
+                if len(e_token) > 1 and len(p_token) == 1 and e_token.startswith(p_token):
+                    return True
+                if len(p_token) > 1 and len(e_token) == 1 and p_token.startswith(e_token):
+                    return True
+
+    return False
 
 
 def main():
