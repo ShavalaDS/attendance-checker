@@ -251,9 +251,10 @@
         document.getElementById("results").style.display = "none";
         statusElement.classList.remove("error");
         statusElement.textContent = fileInputs.every(item => item.input.files.length)
-            ? "File pronti. Avvia il controllo."
+            ? "Entrambi i file sono pronti. Avvio il controllo..."
             : "Seleziona anche l'altro file CSV.";
         compareButton.disabled = !fileInputs.every(item => item.input.files.length);
+        if (fileInputs.every(item => item.input.files.length)) compareFiles();
     }
 
     function showError(message) {
@@ -281,7 +282,7 @@
         });
     });
 
-    compareButton.addEventListener("click", async () => {
+    async function compareFiles() {
         compareButton.disabled = true;
         statusElement.classList.remove("error");
         statusElement.textContent = "Controllo dei file in corso...";
@@ -301,7 +302,9 @@
         } finally {
             compareButton.disabled = !fileInputs.every(slot => slot.input.files.length);
         }
-    });
+    }
+
+    compareButton.addEventListener("click", compareFiles);
 
     function renderResults(names) {
         const results = document.getElementById("results");
