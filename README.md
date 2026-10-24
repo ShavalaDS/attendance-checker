@@ -1,9 +1,5 @@
-![Attendance Checker poster](assets/attendance-checker-poster.png)
-<div align="center">
-  <a href="https://github.com/ShavalaDS/attendance-checker">
-    <img src="assets/attendance-checker-poster.png" alt="Attendance Checker Poster - TRY IT" width="450">
-  </a>
-</div>
+<img width="1350" height="608" alt="attendacechecker" src="https://github.com/user-attachments/assets/c4dd866b-172c-45dc-b366-c250b246a49e" />
+
 # 🚀 Attendance Checker — Stop Wasting Hours on Manual Checks
 
 Ever spent your evening cross-referencing a Zoom export against an official participant list, only to realize you missed three people? We've all been there.
