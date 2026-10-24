@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Attendance Checker Intelligente</title>
+    <title>Smart Attendance Checker</title>
     <style>
         :root {
             --primary: #4f46e5;
@@ -95,46 +95,49 @@
 
 <div class="container">
     <h1>Attendance Checker 🧠</h1>
-    <p class="subtitle">Carica i due CSV: il confronto viene eseguito direttamente nel browser.</p>
+    <p class="subtitle">Upload two CSVs: the comparison runs entirely in your browser.</p>
 
     <div class="grid-inputs">
         <div class="card">
-            <label for="participantsFile">1. Elenco partecipanti</label>
-            <div class="instructions">CSV esportato da Google Sheets. Seleziona le colonne Nome e Cognome oppure una colonna col nome completo.</div>
+            <label for="participantsFile">1. Participant List</label>
+            <div class="instructions">CSV exported from Google Sheets. Select the First Name and Last Name columns, or a single Full Name column.</div>
             <input class="file-input" id="participantsFile" type="file" accept=".csv,text/csv">
             <label class="drop-zone" id="participantsDrop" for="participantsFile" tabindex="0">
-                <strong>Scegli il CSV</strong>
-                <span>oppure trascinalo qui</span>
-                <span class="file-name" id="participantsName">Nessun file selezionato</span>
+                <strong>Choose CSV</strong>
+                <span>or drag and drop it here</span>
+                <span class="file-name" id="participantsName">No file selected</span>
             </label>
         </div>
         <div class="card">
-            <label for="attendeesFile">2. Report presenze Zoom</label>
-            <div class="instructions">Carica il CSV del report Zoom. Viene usata la colonna <b>Name (original name)</b>, se presente.</div>
+            <label for="attendeesFile">2. Zoom Attendance Report</label>
+            <div class="instructions">Upload the Zoom report CSV. The <b>Name (original name)</b> column is used if present.</div>
             <input class="file-input" id="attendeesFile" type="file" accept=".csv,text/csv">
             <label class="drop-zone" id="attendeesDrop" for="attendeesFile" tabindex="0">
-                <strong>Scegli il CSV</strong>
-                <span>oppure trascinalo qui</span>
-                <span class="file-name" id="attendeesName">Nessun file selezionato</span>
+                <strong>Choose CSV</strong>
+                <span>or drag and drop it here</span>
+                <span class="file-name" id="attendeesName">No file selected</span>
             </label>
         </div>
     </div>
 
     <div class="btn-container">
-        <button id="compareButton" type="button" disabled>Controlla le presenze</button>
-        <p class="status" id="status" role="status" aria-live="polite">Seleziona entrambi i file CSV per iniziare.</p>
+        <button id="compareButton" type="button" disabled>Check Attendance</button>
+        <p class="status" id="status" role="status" aria-live="polite">Select both CSV files to start.</p>
     </div>
 
     <section class="results" id="results" aria-live="polite">
         <div class="results-card" id="resultsCard">
-            <h2><span id="resultsTitle">Assenti</span><span class="badge" id="countAbsent">0</span></h2>
+            <h2><span id="resultsTitle">Missing</span><span class="badge" id="countAbsent">0</span></h2>
             <ul class="list-output" id="listAbsent"></ul>
-            <button class="download" id="downloadButton" type="button">Scarica CSV degli assenti</button>
+            <button class="download" id="downloadButton" type="button">Download Missing CSV</button>
         </div>
     </section>
 </div>
 
 <script>
+    /**
+     * Normalizes a string: removes accents, punctuation, and extra spaces.
+     */
     function cleanName(name) {
         return String(name ?? "")
             .normalize("NFKD")
@@ -150,6 +153,9 @@
         return str.replace(/(^|\s)\S/g, character => character.toUpperCase());
     }
 
+    /**
+     * Robust CSV parser that handles quoted fields, delimiters, and BOM.
+     */
     function parseCsv(text) {
         const firstLine = text.replace(/^\uFEFF/, "").split(/\r?\n/, 1)[0] ?? "";
         const delimiters = [",", ";", "\t"];
@@ -186,10 +192,10 @@
             }
         }
 
-        if (quoted) throw new Error("Il CSV contiene un campo tra virgolette non chiuso.");
+        if (quoted) throw new Error("The CSV contains an unclosed quoted field.");
         row.push(cell);
         if (row.some(value => value.trim() !== "")) rows.push(row);
-        if (rows.length < 2) throw new Error("Il CSV è vuoto oppure contiene solo l'intestazione.");
+        if (rows.length < 2) throw new Error("The CSV is empty or contains only the header.");
 
         const headers = rows[0].map(value => value.trim().toLowerCase());
         return { headers, rows: rows.slice(1) };
@@ -200,8 +206,9 @@
     }
 
     function extractExpectedNames(csv) {
-        const firstNameIndex = columnIndex(csv.headers, ["nome", "first name", "first_name"]);
-        const lastNameIndex = columnIndex(csv.headers, ["cognome", "last name", "last_name", "surname"]);
+        const firstNameIndex = columnIndex(csv.headers, ["first name", "first_name", "nome"]);
+        const lastNameIndex = columnIndex(csv.headers, ["last name", "last_name", "surname", "cognome"]);
+        
         if (firstNameIndex !== -1 && lastNameIndex !== -1) {
             return csv.rows.map(row => cleanName(`${row[firstNameIndex] ?? ""} ${row[lastNameIndex] ?? ""}`)).filter(Boolean);
         }
@@ -212,7 +219,7 @@
         if (csv.headers.length >= 2) {
             return csv.rows.map(row => cleanName(`${row[0] ?? ""} ${row[1] ?? ""}`)).filter(Boolean);
         }
-        throw new Error("Non trovo colonne con i nomi nell'elenco partecipanti.");
+        throw new Error("Could not find name columns in the participant list.");
     }
 
     function extractAttendeeNames(csv) {
@@ -221,13 +228,43 @@
         return csv.rows.map(row => cleanName(row[index])).filter(Boolean);
     }
 
+    /**
+     * Advanced name matching logic:
+     * 1. Perfect match or 2+ common tokens.
+     * 2. Subset match (e.g., "Mario Rossi" vs "Mario Rossi Bianchi").
+     * 3. Initials match (e.g., "Mario Rossi" vs "Mario R.").
+     */
     function namesMatch(expected, present) {
-        const expectedTokens = new Set(expected.split(" "));
-        const presentTokens = new Set(present.split(" "));
-        const common = [...expectedTokens].filter(token => presentTokens.has(token)).length;
-        return common >= 2
-            || [...expectedTokens].every(token => presentTokens.has(token))
-            || [...presentTokens].every(token => expectedTokens.has(token));
+        const expectedTokens = [...new Set(expected.split(" ").filter(Boolean))];
+        const presentTokens = [...new Set(present.split(" ").filter(Boolean))];
+
+        if (expectedTokens.length === 0 || presentTokens.length === 0) return false;
+
+        const common = expectedTokens.filter(token => presentTokens.includes(token)).length;
+
+        // 1. Perfect match or 2+ common tokens
+        if (common >= 2) return true;
+
+        // 2. Subset match (one list is entirely contained in the other)
+        const allExpectedInPresent = expectedTokens.every(token => presentTokens.includes(token));
+        const allPresentInExpected = presentTokens.every(token => expectedTokens.includes(token));
+        if (allExpectedInPresent || allPresentInExpected) return true;
+
+        // 3. Initials match (e.g., "Mario Rossi" vs "Mario R.")
+        if (common === 1) {
+            const hasInitialMatch = expectedTokens.some(eToken => 
+                eToken.length > 1 && presentTokens.some(pToken => 
+                    pToken.length === 1 && eToken.startsWith(pToken)
+                )
+            ) || presentTokens.some(pToken => 
+                pToken.length > 1 && expectedTokens.some(eToken => 
+                    eToken.length === 1 && pToken.startsWith(eToken)
+                )
+            );
+            if (hasInitialMatch) return true;
+        }
+
+        return false;
     }
 
     const fileInputs = [
@@ -241,7 +278,7 @@
     function setFile(slot, file) {
         if (!file) return;
         if (!file.name.toLowerCase().endsWith(".csv")) {
-            showError("Seleziona un file CSV per entrambi gli elenchi.");
+            showError("Please select a CSV file for both lists.");
             return;
         }
         const transfer = new DataTransfer();
@@ -251,8 +288,8 @@
         document.getElementById("results").style.display = "none";
         statusElement.classList.remove("error");
         statusElement.textContent = fileInputs.every(item => item.input.files.length)
-            ? "Entrambi i file sono pronti. Avvio il controllo..."
-            : "Seleziona anche l'altro file CSV.";
+            ? "Both files are ready. Starting check..."
+            : "Select the other CSV file too.";
         compareButton.disabled = !fileInputs.every(item => item.input.files.length);
         if (fileInputs.every(item => item.input.files.length)) compareFiles();
     }
@@ -285,20 +322,20 @@
     async function compareFiles() {
         compareButton.disabled = true;
         statusElement.classList.remove("error");
-        statusElement.textContent = "Controllo dei file in corso...";
+        statusElement.textContent = "Checking files...";
         try {
             const [participantsText, attendeesText] = await Promise.all(fileInputs.map(slot => slot.input.files[0].text()));
             const expectedNames = [...new Set(extractExpectedNames(parseCsv(participantsText)))].sort();
             const presentNames = [...new Set(extractAttendeeNames(parseCsv(attendeesText)))];
-            if (expectedNames.length === 0) throw new Error("Nel CSV dei partecipanti non ho trovato nomi.");
-            if (presentNames.length === 0) throw new Error("Nel CSV delle presenze non ho trovato nomi.");
+            if (expectedNames.length === 0) throw new Error("No names found in the participant CSV.");
+            if (presentNames.length === 0) throw new Error("No names found in the attendance CSV.");
 
             missingNames = expectedNames.filter(expected => !presentNames.some(present => namesMatch(expected, present)));
             renderResults(missingNames);
-            statusElement.textContent = `Controllo completato: ${expectedNames.length} partecipanti confrontati.`;
+            statusElement.textContent = `Check complete: ${expectedNames.length} participants compared.`;
         } catch (error) {
             document.getElementById("results").style.display = "none";
-            showError(error instanceof Error ? error.message : "Non è stato possibile leggere i CSV.");
+            showError(error instanceof Error ? error.message : "Could not read the CSVs.");
         } finally {
             compareButton.disabled = !fileInputs.every(slot => slot.input.files.length);
         }
@@ -313,12 +350,12 @@
         const list = document.getElementById("listAbsent");
         const download = document.getElementById("downloadButton");
         document.getElementById("countAbsent").textContent = names.length;
-        title.textContent = names.length ? "❌ Partecipanti assenti" : "✅ Tutti presenti";
+        title.textContent = names.length ? "❌ Missing Participants" : "✅ All Present";
         card.classList.toggle("success", names.length === 0);
         list.replaceChildren();
         if (names.length === 0) {
             const item = document.createElement("li");
-            item.textContent = "Nessun assente.";
+            item.textContent = "No missing attendees.";
             list.appendChild(item);
             download.style.display = "none";
         } else {
@@ -337,7 +374,11 @@
         const url = URL.createObjectURL(new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" }));
         const link = document.createElement("a");
         link.href = url;
-        link.download = "missing_attendees.csv";
+        
+        // Dynamically add the current date to the filename
+        const today = new Date().toISOString().split('T')[0];
+        link.download = `missing_attendees_${today}.csv`;
+        
         link.click();
         URL.revokeObjectURL(url);
     });
