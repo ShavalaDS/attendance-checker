@@ -1,3 +1,4 @@
+![alt text](assets/attendance-checker-poster.png)
 <div align="center">
   <a href="https://github.com/ShavalaDS/attendance-checker">
     <img src="assets/attendance-checker-poster.png" alt="Attendance Checker Poster - TRY IT" width="450">
