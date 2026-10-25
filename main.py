@@ -103,7 +103,7 @@ def names_match(expected, present):
     """
     Advanced name matching logic:
     1. Perfect match or 2+ common tokens.
-    2. Subset match (e.g., "Mario Rossi" vs "Mario Rossi Bianchi").
+    2. Subset match (e.g., "Giulia Bianchi" vs "Giulia Maria Bianchi").
     3. Initials match (e.g., "Mario Rossi" vs "Mario R.").
     """
     expected_tokens = set(filter(None, expected.split()))
@@ -118,15 +118,14 @@ def names_match(expected, present):
     if len(common) >= 2:
         return True
 
-    # 2. Subset match (one list is entirely contained in the other)
+    # 2. Subset match
     if expected_tokens.issubset(present_tokens) or present_tokens.issubset(expected_tokens):
         return True
 
-    # 3. Initials match (e.g., "Mario Rossi" vs "Mario R.")
+    # 3. Initials match
     if len(common) == 1:
         for e_token in expected_tokens:
             for p_token in present_tokens:
-                # Check if a short token (initial) matches the start of a long token
                 if len(e_token) > 1 and len(p_token) == 1 and e_token.startswith(p_token):
                     return True
                 if len(p_token) > 1 and len(e_token) == 1 and p_token.startswith(e_token):
@@ -153,28 +152,42 @@ def main():
         set_expected = {name for name in expected_names if name}
         set_present = {name for name in present_names if name}
 
+        # 1. Find Missing (in list, but not in Zoom)
         missing = []
         for expected in sorted(set_expected):
-            found = False
-            for present in set_present:
-                if names_match(expected, present):
-                    found = True
-                    break
-            if not found:
+            if not any(names_match(expected, present) for present in set_present):
                 missing.append(expected)
 
-        os.makedirs("3_Missing", exist_ok=True)
-        today_date = datetime.now().strftime("%Y-%m-%d")
-        output_file = os.path.join("3_Missing", f"missing_{today_date}.csv")
+        # 2. Find Extras (in Zoom, but not in list)
+        extras = []
+        for present in sorted(set_present):
+            if not any(names_match(expected, present) for expected in set_expected):
+                extras.append(present)
 
+        # Create the descriptive folder for trainers
+        output_dir = "3_Missing_and_Extras"
+        os.makedirs(output_dir, exist_ok=True)
+        today_date = datetime.now().strftime("%Y-%m-%d")
+        
+        # Save Missing
         if missing:
             df_missing = pd.DataFrame(missing, columns=["Missing Name"])
             df_missing["Missing Name"] = df_missing["Missing Name"].str.title()
+            output_file = os.path.join(output_dir, f"missing_{today_date}.csv")
             df_missing.to_csv(output_file, index=False)
-            print(f"✅ Check completed! Found {len(missing)} missing attendees.")
-            print(f"📁 File saved at: {output_file}")
+            print(f"✅ Found {len(missing)} missing attendees. Saved to {output_file}")
         else:
-            print("🎉 No missing attendees! Everyone was present.")
+            print("🎉 No missing attendees! Everyone from the list was present.")
+
+        # Save Extras
+        if extras:
+            df_extras = pd.DataFrame(extras, columns=["Extra Name"])
+            df_extras["Extra Name"] = df_extras["Extra Name"].str.title()
+            extra_file = os.path.join(output_dir, f"extras_{today_date}.csv")
+            df_extras.to_csv(extra_file, index=False)
+            print(f"⚠️ Found {len(extras)} extra attendees (not in the list). Saved to {extra_file}")
+        else:
+            print("✨ No extra attendees. The call was a perfect match.")
 
     except Exception as e:
         print(f"❌ Error: {e}")
