@@ -259,6 +259,7 @@ def main():
                 )
             print(f"🎉 No missing attendees. Saved confirmation to {missing_txt}")
         else:
+            # Ambiguities remain, but no absences are confirmed.
             pd.DataFrame(columns=["Missing Name"]).to_csv(missing_csv, index=False)
             print(
                 "⚠️ No confirmed missing attendees. Review the ambiguity report. "
