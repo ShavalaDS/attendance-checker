@@ -545,8 +545,6 @@
             const badge = document.getElementById("countBadge");
             const hasResults = missing.length > 0 || extras.length > 0 || ambiguousMatches.length > 0;
 
-            badge.textContent = missing.length || extras.length || ambiguousMatches.length;
-
             if (!hasResults) {
                 title.textContent = "✅ Perfect Match";
                 card.className = "results-card success";
