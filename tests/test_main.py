@@ -1,5 +1,6 @@
 import contextlib
 import io
+import json
 import os
 from pathlib import Path
 import tempfile
@@ -11,6 +12,29 @@ from main import compare_attendance, main
 
 
 class CompareAttendanceTests(unittest.TestCase):
+    def test_shared_matching_cases(self):
+        cases_path = Path(__file__).with_name("attendance_cases.json")
+        cases = json.loads(cases_path.read_text(encoding="utf-8"))
+
+        for case in cases:
+            with self.subTest(case=case["name"]):
+                missing, extras, ambiguities = compare_attendance(
+                    case["expectedNames"], case["attendeeNames"]
+                )
+                result = {
+                    "missing": missing,
+                    "extras": extras,
+                    "ambiguities": [
+                        {
+                            "attendeeName": row["Attendee Name"],
+                            "matchingParticipants": row["Matching Participants"],
+                            "candidateCount": row["Candidate Count"],
+                        }
+                        for row in ambiguities
+                    ],
+                }
+                self.assertEqual(result, case["expectedResult"])
+
     def test_single_partial_name_is_confirmed(self):
         missing, extras, ambiguities = compare_attendance(
             ["mario rossi"], ["mario"]
@@ -31,7 +55,7 @@ class CompareAttendanceTests(unittest.TestCase):
             ambiguities,
             [{
                 "Attendee Name": "Mario",
-                "Matching Participants": "Mario Rossi; Mario Bianchi",
+                "Matching Participants": "Mario Bianchi; Mario Rossi",
                 "Candidate Count": 2,
             }],
         )
@@ -84,7 +108,7 @@ class CompareAttendanceTests(unittest.TestCase):
             self.assertEqual(len(reports), 1)
             report = pd.read_csv(reports[0])
             self.assertEqual(report.loc[0, "Attendee Name"], "Mario")
-            self.assertEqual(report.loc[0, "Matching Participants"], "Mario Rossi; Mario Bianchi")
+            self.assertEqual(report.loc[0, "Matching Participants"], "Mario Bianchi; Mario Rossi")
             self.assertEqual(report.loc[0, "Candidate Count"], 2)
 
     def test_cli_writes_header_only_when_no_ambiguities_exist(self):

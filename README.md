@@ -22,14 +22,14 @@ Attendance Checker takes the bulk of the work out of attendance verification in 
 No installation. No terminal. No data leaves your computer.
 1. 📂 Open the **[Attendance Checker Web App](https://shavalads.github.io/attendance-checker/Attendance_Checker.html)** in your browser.
 2. 🖱️ Drag your participant list and Zoom export onto the drop zones.
-3. 📋 Click "Check Attendance" and download your report instantly.
+3. 📋 Click "Check Attendance" to compare the files, then download the report.
 
 **Option B: The CLI (For Developers & Power Users)**
 1. 📂 Drop your files in `1_Participants/` and `2_Attendees/`.
 2. ▶️ Run `python main.py`.
 3. 📋 Find your results in **`3_Missing_and_Extras/`** — you'll get `missing_YYYY-MM-DD.csv`, `extras_YYYY-MM-DD.csv`, and `ambiguities_YYYY-MM-DD.csv`.
 
-*Both paths use the **same matching engine**. Choose the one that fits your workflow.*
+*Both paths are intended to apply the same matching rules. The implementations are separate, so supported CSV separators and column headers may differ.*
 
 ---
 
@@ -39,19 +39,19 @@ This isn't a dumb comparison. Attendance Checker is explicitly designed to absor
 
 *   **Case & whitespace** — inconsistent capitalization and hidden spaces are normalized (e.g., `MARIO ROSSI` and `  mario rossi ` are treated as the same).
 *   **Punctuation & accents** — dots, hyphens, slashes, and accented characters are removed or flattened (e.g., `Niccolò` → `niccolo`, `mario.rossi` → `mario rossi`).
-*   **Single initials** — *"Mario R."* matches *"Mario Rossi"*. The logic detects when a short token (1 character) is the prefix of a longer token, provided at least one other token matches.
-*   **Compound names (partial)** — *"Giulia Bianchi"* matches *"Giulia Maria Bianchi"*, as long as the shorter name is a subset of the longer one.
-*   **Token-based similarity** — names are split into words and compared. A match is found if at least two tokens overlap, or if one set of tokens is entirely contained in the other.
+*   **Single initials** — *"Mario R."* matches *"Mario Rossi"* when another token, such as "Mario", matches too. An initial that only repeats a token already matched does not count as additional evidence.
+*   **Compound names (partial)** — *"Giulia Bianchi"* can match *"Giulia Maria Bianchi"* because the shorter name is contained in the longer one.
+*   **Token-based similarity** — names are split into words and compared. Stronger matches take precedence over weaker partial matches; equally strong matches to multiple participants are reported as ambiguous.
 *   **The "Extras" catch** — people who joined the call but weren't on the official list are flagged separately in the same output, so you never miss them.
-*   **Ambiguous names** — if an attendee name matches multiple participants, those candidates are recorded in a dedicated `ambiguities_YYYY-MM-DD.csv` report and are not counted as confirmed present or missing. In the browser, this report is available as a separate download when ambiguities are found. The CLI writes the report in `3_Missing_and_Extras/`; it contains only headers when no ambiguities are found.
+*   **Ambiguous names** — if an attendee name equally matches multiple participants, the candidates are listed in a dedicated ambiguity report, not counted as confirmed present. For example, attendee "Mario" matching expected "Mario Rossi" and "Mario Bianchi" is ambiguous. If another attendee name uniquely identifies "Mario Rossi", Rossi is present and Bianchi is missing; the partial-name ambiguity is still reported. A single expected "Mario Rossi" matched by attendee "Mario" is a unique match. The browser offers a separate ambiguity download; the CLI writes `ambiguities_YYYY-MM-DD.csv` in `3_Missing_and_Extras/` (header only if there are no ambiguities).
 
-✅ **Real-World Tested:** Battle-tested on real data. The matching logic has reduced manual reconciliation work by roughly 90% in day-to-day use.
+✅ **Preliminary estimate:** Day-to-day use suggests the tool may reduce manual reconciliation work by roughly 90%. This is not yet a measured result based on a formal test set or methodology.
 
 ---
 
 ### ⚠️ Known Limitations
 
-To keep the tool lightweight, dependency-free, and easy to audit, we deliberately excluded some advanced matching techniques. Here is what the current version does **not** handle:
+To keep the matching logic lightweight and easy to audit, we deliberately excluded some advanced matching techniques. The browser interface has no external library dependencies; the CLI requires Pandas. Here is what the current version does **not** handle:
 
 *   **Nicknames** (*"Bob"* vs *"Robert"*, *"Gianni"* vs *"Giovanni"*) — requires a custom dictionary or an external library.
 *   **Typos** (*"Mario Rosi"* vs *"Mario Rossi"*) — requires Levenshtein distance or fuzzy string matching.
@@ -74,7 +74,7 @@ Folders and files are named for what they *do*, not for what they *are*. You won
 Running the logic client-side (in the browser) isn't just a technical choice — it's a design statement. Your participant data never touches a server. Trainers can work with sensitive information without a second thought.
 
 **3. Progressive Disclosure**
-The tool offers two paths: a simple, zero-install web app for everyday users, and a CLI for power users. Both use the same engine, so the experience is consistent without forcing everyone through the same door.
+The tool offers two paths: a simple, zero-install web app for everyday users, and a CLI for power users. Both are intended to follow the same matching rules, although their separate implementations and CSV import behavior may differ.
 
 **4. The "Zero-Touch" Vision**
 The current version is intentionally manual: drop two files, get results. But the roadmap is clear — the ultimate goal is a background service that fetches data via APIs, runs the check, and only pings the trainer when something needs their attention. No files, no buttons, no friction.

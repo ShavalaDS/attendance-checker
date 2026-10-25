@@ -1,0 +1,104 @@
+[
+  {
+    "name": "a single partial name uniquely identifies one participant",
+    "expectedNames": ["mario rossi"],
+    "attendeeNames": ["mario"],
+    "expectedResult": {
+      "missing": [],
+      "extras": [],
+      "ambiguities": []
+    }
+  },
+  {
+    "name": "a partial name matching two participants is ambiguous",
+    "expectedNames": ["mario rossi", "mario bianchi"],
+    "attendeeNames": ["mario"],
+    "expectedResult": {
+      "missing": [],
+      "extras": [],
+      "ambiguities": [
+        {
+          "attendeeName": "Mario",
+          "matchingParticipants": "Mario Bianchi; Mario Rossi",
+          "candidateCount": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "a stronger full-name match takes precedence over a weaker partial match",
+    "expectedNames": ["mario", "mario rossi"],
+    "attendeeNames": ["mario rossi"],
+    "expectedResult": {
+      "missing": ["mario"],
+      "extras": [],
+      "ambiguities": []
+    }
+  },
+  {
+    "name": "a unique match resolves the missing status of other ambiguous candidates",
+    "expectedNames": ["mario rossi", "mario bianchi"],
+    "attendeeNames": ["mario", "mario rossi"],
+    "expectedResult": {
+      "missing": ["mario bianchi"],
+      "extras": [],
+      "ambiguities": [
+        {
+          "attendeeName": "Mario",
+          "matchingParticipants": "Mario Bianchi; Mario Rossi",
+          "candidateCount": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "a single initial matches when another token independently matches",
+    "expectedNames": ["mario rossi"],
+    "attendeeNames": ["mario r"],
+    "expectedResult": {
+      "missing": [],
+      "extras": [],
+      "ambiguities": []
+    }
+  },
+  {
+    "name": "an initial repeating the only shared token is not enough evidence",
+    "expectedNames": ["mario rossi"],
+    "attendeeNames": ["mario m"],
+    "expectedResult": {
+      "missing": ["mario rossi"],
+      "extras": ["mario m"],
+      "ambiguities": []
+    }
+  },
+  {
+    "name": "repeated attendee rows for a uniquely identified person count once",
+    "expectedNames": ["mario rossi"],
+    "attendeeNames": ["mario rossi", "mario rossi"],
+    "expectedResult": {
+      "missing": [],
+      "extras": [],
+      "ambiguities": []
+    }
+  },
+  {
+    "name": "compound names match through a shared subset",
+    "expectedNames": ["giulia bianchi"],
+    "attendeeNames": ["giulia maria bianchi"],
+    "expectedResult": {
+      "missing": [],
+      "extras": [],
+      "ambiguities": []
+    }
+  },
+  {
+    "name": "a missing participant and an unrelated extra remain separate",
+    "expectedNames": ["giulia bianchi", "mario rossi"],
+    "attendeeNames": ["mario rossi", "luca verdi"],
+    "expectedResult": {
+      "missing": ["giulia bianchi"],
+      "extras": ["luca verdi"],
+      "ambiguities": []
+    }
+  }
+]

@@ -278,7 +278,7 @@
 
         <div class="btn-container">
             <button id="compareButton" type="button" disabled>Check Attendance</button>
-            <p class="status" id="status" role="status" aria-live="polite">Select both CSV files to start.</p>
+            <p class="status" id="status" role="status" aria-live="polite">Select both CSV files, then click Check Attendance.</p>
         </div>
 
         <section class="results" id="results" aria-live="polite">
@@ -383,45 +383,53 @@
             const expectedTokens = [...new Set(expected.split(" ").filter(Boolean))];
             const presentTokens = [...new Set(present.split(" ").filter(Boolean))];
 
-            if (expectedTokens.length === 0 || presentTokens.length === 0) return false;
+            if (expectedTokens.length === 0 || presentTokens.length === 0) return 0;
 
             const common = expectedTokens.filter(token => presentTokens.includes(token)).length;
 
-            if (common >= 2) return true;
+            if (expectedTokens.length === presentTokens.length && common === expectedTokens.length) {
+                return 1000 + common;
+            }
 
             const allExpectedInPresent = expectedTokens.every(token => presentTokens.includes(token));
             const allPresentInExpected = presentTokens.every(token => expectedTokens.includes(token));
-            if (allExpectedInPresent || allPresentInExpected) return true;
+            if (allExpectedInPresent || allPresentInExpected) return 500 + common;
+
+            if (common >= 2) return 100 + common;
 
             if (common === 1) {
                 const hasInitialMatch = expectedTokens.some(eToken =>
                     eToken.length > 1 && presentTokens.some(pToken =>
-                        pToken.length === 1 && eToken.startsWith(pToken)
+                        pToken.length === 1 && eToken.startsWith(pToken) &&
+                        expectedTokens.some(token => token !== eToken && presentTokens.includes(token))
                     )
                 ) || presentTokens.some(pToken =>
                     pToken.length > 1 && expectedTokens.some(eToken =>
-                        eToken.length === 1 && pToken.startsWith(eToken)
+                        eToken.length === 1 && pToken.startsWith(eToken) &&
+                        presentTokens.some(token => token !== pToken && expectedTokens.includes(token))
                     )
                 );
-                if (hasInitialMatch) return true;
+                if (hasInitialMatch) return 50 + common;
             }
 
-            return false;
+            return 0;
         }
 
         function compareAttendance(expectedNames, presentNames) {
             const definitelyPresent = new Set();
-            const ambiguousExpected = new Set();
+            const ambiguousCandidateGroups = [];
             const extras = [];
             const ambiguities = [];
 
-            presentNames.forEach(present => {
-                const candidates = expectedNames
-                    .map((expected, index) => namesMatch(expected, present) ? index : -1)
+            [...new Set(presentNames)].sort().forEach(present => {
+                const scores = expectedNames.map(expected => namesMatch(expected, present));
+                const bestScore = Math.max(0, ...scores);
+                const candidates = scores
+                    .map((score, index) => bestScore && score === bestScore ? index : -1)
                     .filter(index => index !== -1);
 
                 if (candidates.length > 1) {
-                    candidates.forEach(index => ambiguousExpected.add(index));
+                    ambiguousCandidateGroups.push(new Set(candidates));
                     ambiguities.push({
                         attendeeName: toTitleCase(present),
                         matchingParticipants: candidates
@@ -433,6 +441,13 @@
                     definitelyPresent.add(candidates[0]);
                 } else {
                     extras.push(present);
+                }
+            });
+
+            const ambiguousExpected = new Set();
+            ambiguousCandidateGroups.forEach(candidates => {
+                if (![...candidates].some(index => definitelyPresent.has(index))) {
+                    candidates.forEach(index => ambiguousExpected.add(index));
                 }
             });
 
@@ -465,10 +480,9 @@
             document.getElementById("results").style.display = "none";
             statusElement.classList.remove("error");
             statusElement.textContent = fileInputs.every(item => item.input.files.length)
-                ? "Both files are ready. Starting check..."
+                ? "Both files are ready. Click Check Attendance to run the comparison."
                 : "Select the other CSV file too.";
             compareButton.disabled = !fileInputs.every(item => item.input.files.length);
-            if (fileInputs.every(item => item.input.files.length)) compareFiles();
         }
 
         function showError(message) {

@@ -99,58 +99,61 @@ def extract_names(frame, expected_mode=False):
     return frame.iloc[:, 0].apply(clean_name)
 
 
-def names_match(expected, present):
-    """
-    Advanced name matching logic:
-    1. Perfect match or 2+ common tokens.
-    2. Subset match (e.g., "Giulia Bianchi" vs "Giulia Maria Bianchi").
-    3. Initials match (e.g., "Mario Rossi" vs "Mario R.").
-    """
+def name_match_score(expected, present):
     expected_tokens = set(filter(None, expected.split()))
     present_tokens = set(filter(None, present.split()))
 
     if not expected_tokens or not present_tokens:
-        return False
+        return 0
 
     common = expected_tokens & present_tokens
-    
-    # 1. Perfect match or 2+ common tokens
-    if len(common) >= 2:
-        return True
 
-    # 2. Subset match
+    if expected_tokens == present_tokens:
+        return 1000 + len(common)
+
     if expected_tokens.issubset(present_tokens) or present_tokens.issubset(expected_tokens):
-        return True
+        return 500 + len(common)
 
-    # 3. Initials match
-    if len(common) == 1:
+    if len(common) >= 2:
+        return 100 + len(common)
+
+    if common:
         for e_token in expected_tokens:
             for p_token in present_tokens:
                 if len(e_token) > 1 and len(p_token) == 1 and e_token.startswith(p_token):
-                    return True
+                    if common - {e_token}:
+                        return 50 + len(common)
                 if len(p_token) > 1 and len(e_token) == 1 and p_token.startswith(e_token):
-                    return True
+                    if common - {p_token}:
+                        return 50 + len(common)
 
-    return False
+    return 0
+
+
+def names_match(expected, present):
+    return name_match_score(expected, present) > 0
 
 
 def compare_attendance(expected_names, present_names):
-    expected_names = [name for name in expected_names if name]
+    expected_names = sorted(name for name in expected_names if name)
     present_names = sorted({name for name in present_names if name})
     definitely_present = set()
-    ambiguous_expected = set()
+    ambiguous_candidate_groups = []
     extras = []
     ambiguities = []
 
     for present in present_names:
+        scores = [
+            name_match_score(expected, present) for expected in expected_names
+        ]
+        best_score = max(scores, default=0)
         candidates = [
-            index
-            for index, expected in enumerate(expected_names)
-            if names_match(expected, present)
+            index for index, score in enumerate(scores)
+            if best_score and score == best_score
         ]
 
         if len(candidates) > 1:
-            ambiguous_expected.update(candidates)
+            ambiguous_candidate_groups.append(set(candidates))
             ambiguities.append({
                 "Attendee Name": present.title(),
                 "Matching Participants": "; ".join(
@@ -162,6 +165,11 @@ def compare_attendance(expected_names, present_names):
             definitely_present.add(candidates[0])
         else:
             extras.append(present)
+
+    ambiguous_expected = set()
+    for candidates in ambiguous_candidate_groups:
+        if not candidates & definitely_present:
+            ambiguous_expected.update(candidates)
 
     missing = [
         name
