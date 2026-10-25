@@ -22,14 +22,15 @@ Attendance Checker takes the bulk of the work out of attendance verification in 
 No installation. No terminal. No data leaves your computer.
 1. 📂 Open the **[Attendance Checker Web App](https://shavalads.github.io/attendance-checker/Attendance_Checker.html)** in your browser.
 2. 🖱️ Drag your participant list and Zoom export onto the drop zones.
-3. 📋 Click "Check Attendance" to compare the files, then download the report.
+3. 📋 Click "Check Attendance" to compare the files, then download the ZIP containing the session reports.
 
 **Option B: The CLI (For Developers & Power Users)**
 1. 📂 Drop your files in `1_Participants/` and `2_Attendees/`.
 2. ▶️ Run `python main.py`.
-3. 📋 Find your results in **`3_Missing_and_Extras/`** — you'll get `missing_YYYY-MM-DD.csv`, `extras_YYYY-MM-DD.csv`, and `ambiguities_YYYY-MM-DD.csv`.
+3. 📋 Find your results in **`3_Missing_and_Extras/`**. Report filenames include the local run timestamp (`YYYY-MM-DD_HH-mm`). Missing is a CSV when participants are confirmed missing, a TXT confirmation when there are no missing participants or unresolved ambiguities, or a header-only CSV when ambiguities remain but no participant is confirmed missing. Extras and Ambiguities CSVs are created only when they contain results.
+4. If an input folder contains multiple CSV files, the CLI lists them and asks which one to use.
 
-*Both paths are intended to apply the same matching rules. The implementations are separate, so supported CSV separators and column headers may differ.*
+*Both paths apply the same matching rules and support comma-, semicolon-, and tab-separated CSVs with the same recognized name-column headers.*
 
 ---
 
@@ -43,9 +44,9 @@ This isn't a dumb comparison. Attendance Checker is explicitly designed to absor
 *   **Compound names (partial)** — *"Giulia Bianchi"* can match *"Giulia Maria Bianchi"* because the shorter name is contained in the longer one.
 *   **Token-based similarity** — names are split into words and compared. Stronger matches take precedence over weaker partial matches; equally strong matches to multiple participants are reported as ambiguous.
 *   **The "Extras" catch** — people who joined the call but weren't on the official list are flagged separately in the same output, so you never miss them.
-*   **Ambiguous names** — if an attendee name equally matches multiple participants, the candidates are listed in a dedicated ambiguity report, not counted as confirmed present. For example, attendee "Mario" matching expected "Mario Rossi" and "Mario Bianchi" is ambiguous. If another attendee name uniquely identifies "Mario Rossi", Rossi is present and Bianchi is missing; the partial-name ambiguity is still reported. A single expected "Mario Rossi" matched by attendee "Mario" is a unique match. The browser offers a separate ambiguity download; the CLI writes `ambiguities_YYYY-MM-DD.csv` in `3_Missing_and_Extras/` (header only if there are no ambiguities).
+*   **Ambiguous names** — if an attendee name equally matches multiple participants, the candidates are listed in the Ambiguities report, not counted as confirmed present. For example, attendee "Mario" matching expected "Mario Rossi" and "Mario Bianchi" is ambiguous. If another attendee name uniquely identifies "Mario Rossi", Rossi is present and Bianchi is missing; the partial-name ambiguity is still reported. A single expected "Mario Rossi" matched by attendee "Mario" is a unique match. The browser ZIP and CLI output folder contain the timestamped Ambiguities CSV when there are ambiguities.
 
-✅ **Preliminary estimate:** Day-to-day use suggests the tool may reduce manual reconciliation work by roughly 90%. This is not yet a measured result based on a formal test set or methodology.
+✅ **Preliminary estimate:** Day-to-day use suggests the tool may reduce manual reconciliation work by roughly 90%. This is an early estimate, not yet measured using a formal test set or methodology.
 
 ---
 

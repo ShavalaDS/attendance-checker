@@ -1,0 +1,30 @@
+[
+  {
+    "name": "semicolon CSV with Italian first and last name headers",
+    "participants": "Nome;Cognome;Email\nMario;Rossi;mario@example.test\n",
+    "attendees": "Name (original name);Email\nMario Rossi;mario@example.test\n",
+    "expectedNames": ["mario rossi"],
+    "attendeeNames": ["mario rossi"]
+  },
+  {
+    "name": "tab-separated CSV with English aliases",
+    "participants": "First_Name\tSurname\tEmail\nMario\tRossi\tmario@example.test\n",
+    "attendees": "Name (original name)\tEmail\nMario Rossi\tmario@example.test\n",
+    "expectedNames": ["mario rossi"],
+    "attendeeNames": ["mario rossi"]
+  },
+  {
+    "name": "semicolon CSV with full-name headers and extra columns",
+    "participants": "Nome Completo;Email\nMario Rossi;mario@example.test\n",
+    "attendees": "Name;Email\nMario Rossi;mario@example.test\n",
+    "expectedNames": ["mario rossi"],
+    "attendeeNames": ["mario rossi"]
+  },
+  {
+    "name": "comma CSV with first and last name columns",
+    "participants": "First Name,Last Name,Email\nMario,Rossi,mario@example.test\n",
+    "attendees": "Name (original name),Email\nMario Rossi,mario@example.test\n",
+    "expectedNames": ["mario rossi"],
+    "attendeeNames": ["mario rossi"]
+  }
+]
