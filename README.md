@@ -20,7 +20,7 @@ Attendance Checker takes the bulk of the work out of attendance verification in 
 
 **Option A: The Web App (Recommended for Trainers)**
 No installation. No terminal. No data leaves your computer.
-1. 📂 Open the **[Attendance Checker Web App](https://shavalads.github.io/attendance-checker/)** in your browser.
+1. 📂 Open the **[Attendance Checker Web App](https://shavalads.github.io/attendance-checker/Attendance_Checker.html)** in your browser.
 2. 🖱️ Drag your participant list and Zoom export onto the drop zones.
 3. 📋 Click "Check Attendance" and download your report instantly.
 
