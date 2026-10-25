@@ -52,7 +52,7 @@ Running the logic client-side (in the browser) isn't just a technical choice —
 The tool offers two paths: a simple, zero-install web app for everyday users, and a CLI for power users. Both use the same engine, so the experience is consistent without forcing everyone through the same door.
 
 **4. The "Zero-Touch" Vision**
-The current MVP is intentionally manual: drop two files, get results. But the roadmap is clear — the ultimate goal is a background service that fetches data via APIs, runs the check, and only pings the trainer when something needs their attention. No files, no buttons, no friction.
+The current version is intentionally manual: drop two files, get results. But the roadmap is clear — the ultimate goal is a background service that fetches data via APIs, runs the check, and only pings the trainer when something needs their attention. No files, no buttons, no friction.
 
 ---
 
@@ -81,7 +81,7 @@ This iterative, multi-model approach dramatically accelerated development. It di
 
 ### 🔮 Future Iterations & Scope
 
-*   **UI/UX Refinements in the Web App** — the current interface is a functional MVP. Future iterations will focus on improving the visual feedback (e.g., loading states, error handling), accessibility, and the overall look and feel to make the browser experience even more seamless and intuitive.
+*   **UI/UX Refinements in the Web App** — the current interface is a first iteration focused on functional validation. Future updates will focus on improving visual feedback (e.g., loading states, error handling), accessibility, and the overall look and feel to make the browser experience even more seamless and intuitive.
 *   **Localization (i18n)** — the UI is currently in English, but the target audience is global. Translating the interface (and the generated filenames) into other languages will make the tool accessible to non-English-speaking trainers. This feature will be prioritized based on user interviews with international training teams.
 *   **Manual override in the Web UI** — allow users to correct fuzzy matches on the fly.
 *   **The "Zero-Touch" Workflow** — direct API integrations with Zoom and Google Sheets, background execution, and smart notifications only when anomalies are detected.
