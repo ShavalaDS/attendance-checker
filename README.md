@@ -27,7 +27,7 @@ No installation. No terminal. No data leaves your computer.
 **Option B: The CLI (For Developers & Power Users)**
 1. 📂 Drop your files in `1_Participants/` and `2_Attendees/`.
 2. ▶️ Run `python main.py`.
-3. 📋 Find your results in **`3_Missing_and_Extras/`** — you'll get a `missing_YYYY-MM-DD.csv` and an `extras_YYYY-MM-DD.csv`.
+3. 📋 Find your results in **`3_Missing_and_Extras/`** — you'll get `missing_YYYY-MM-DD.csv`, `extras_YYYY-MM-DD.csv`, and `ambiguities_YYYY-MM-DD.csv`.
 
 *Both paths use the **same matching engine**. Choose the one that fits your workflow.*
 
@@ -43,6 +43,7 @@ This isn't a dumb comparison. Attendance Checker is explicitly designed to absor
 *   **Compound names (partial)** — *"Giulia Bianchi"* matches *"Giulia Maria Bianchi"*, as long as the shorter name is a subset of the longer one.
 *   **Token-based similarity** — names are split into words and compared. A match is found if at least two tokens overlap, or if one set of tokens is entirely contained in the other.
 *   **The "Extras" catch** — people who joined the call but weren't on the official list are flagged separately in the same output, so you never miss them.
+*   **Ambiguous names** — if an attendee name matches multiple participants, those candidates are recorded in a dedicated `ambiguities_YYYY-MM-DD.csv` report and are not counted as confirmed present or missing. In the browser, this report is available as a separate download when ambiguities are found. The CLI writes the report in `3_Missing_and_Extras/`; it contains only headers when no ambiguities are found.
 
 ✅ **Real-World Tested:** Battle-tested on real data. The matching logic has reduced manual reconciliation work by roughly 90% in day-to-day use.
 

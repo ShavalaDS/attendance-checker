@@ -134,6 +134,43 @@ def names_match(expected, present):
     return False
 
 
+def compare_attendance(expected_names, present_names):
+    expected_names = [name for name in expected_names if name]
+    present_names = sorted({name for name in present_names if name})
+    definitely_present = set()
+    ambiguous_expected = set()
+    extras = []
+    ambiguities = []
+
+    for present in present_names:
+        candidates = [
+            index
+            for index, expected in enumerate(expected_names)
+            if names_match(expected, present)
+        ]
+
+        if len(candidates) > 1:
+            ambiguous_expected.update(candidates)
+            ambiguities.append({
+                "Attendee Name": present.title(),
+                "Matching Participants": "; ".join(
+                    expected_names[index].title() for index in candidates
+                ),
+                "Candidate Count": len(candidates),
+            })
+        elif candidates:
+            definitely_present.add(candidates[0])
+        else:
+            extras.append(present)
+
+    missing = [
+        name
+        for index, name in enumerate(expected_names)
+        if index not in definitely_present and index not in ambiguous_expected
+    ]
+    return missing, extras, ambiguities
+
+
 def main():
     print("Starting attendance check...")
     file_participants = find_csv_file("1_Participants")
@@ -149,25 +186,21 @@ def main():
         expected_names = extract_names(df_participants, expected_mode=True)
         present_names = extract_names(df_attendees)
 
-        set_expected = {name for name in expected_names if name}
-        set_present = {name for name in present_names if name}
-
-        # 1. Find Missing (in list, but not in Zoom)
-        missing = []
-        for expected in sorted(set_expected):
-            if not any(names_match(expected, present) for present in set_present):
-                missing.append(expected)
-
-        # 2. Find Extras (in Zoom, but not in list)
-        extras = []
-        for present in sorted(set_present):
-            if not any(names_match(expected, present) for expected in set_expected):
-                extras.append(present)
+        missing, extras, ambiguities = compare_attendance(
+            expected_names, present_names
+        )
 
         # Create the descriptive folder for trainers
         output_dir = "3_Missing_and_Extras"
         os.makedirs(output_dir, exist_ok=True)
         today_date = datetime.now().strftime("%Y-%m-%d")
+        ambiguity_file = os.path.join(
+            output_dir, f"ambiguities_{today_date}.csv"
+        )
+        pd.DataFrame(
+            ambiguities,
+            columns=["Attendee Name", "Matching Participants", "Candidate Count"],
+        ).to_csv(ambiguity_file, index=False)
         
         # Save Missing
         if missing:
@@ -177,7 +210,10 @@ def main():
             df_missing.to_csv(output_file, index=False)
             print(f"✅ Found {len(missing)} missing attendees. Saved to {output_file}")
         else:
-            print("🎉 No missing attendees! Everyone from the list was present.")
+            if ambiguities:
+                print("⚠️ No confirmed missing attendees. Review the ambiguity report.")
+            else:
+                print("🎉 No missing attendees! Everyone from the list was present.")
 
         # Save Extras
         if extras:
@@ -187,7 +223,15 @@ def main():
             df_extras.to_csv(extra_file, index=False)
             print(f"⚠️ Found {len(extras)} extra attendees (not in the list). Saved to {extra_file}")
         else:
-            print("✨ No extra attendees. The call was a perfect match.")
+            print("✨ No extra attendees.")
+
+        if ambiguities:
+            print(
+                f"⚠️ Found {len(ambiguities)} ambiguous attendee names. "
+                f"Saved to {ambiguity_file}"
+            )
+        else:
+            print(f"✅ No ambiguous attendee names. Saved empty report to {ambiguity_file}")
 
     except Exception as e:
         print(f"❌ Error: {e}")

@@ -286,6 +286,7 @@
                 <h2><span id="resultsTitle">Results</span><span class="badge" id="countBadge">0</span></h2>
                 <ul class="list-output" id="listOutput"></ul>
                 <button class="download" id="downloadButton" type="button">Download Missing & Extras CSV</button>
+                <button class="download" id="ambiguityDownloadButton" type="button">Download Ambiguities CSV</button>
             </div>
         </section>
     </div>
@@ -408,6 +409,39 @@
             return false;
         }
 
+        function compareAttendance(expectedNames, presentNames) {
+            const definitelyPresent = new Set();
+            const ambiguousExpected = new Set();
+            const extras = [];
+            const ambiguities = [];
+
+            presentNames.forEach(present => {
+                const candidates = expectedNames
+                    .map((expected, index) => namesMatch(expected, present) ? index : -1)
+                    .filter(index => index !== -1);
+
+                if (candidates.length > 1) {
+                    candidates.forEach(index => ambiguousExpected.add(index));
+                    ambiguities.push({
+                        attendeeName: toTitleCase(present),
+                        matchingParticipants: candidates
+                            .map(index => toTitleCase(expectedNames[index]))
+                            .join("; "),
+                        candidateCount: candidates.length
+                    });
+                } else if (candidates.length === 1) {
+                    definitelyPresent.add(candidates[0]);
+                } else {
+                    extras.push(present);
+                }
+            });
+
+            const missing = expectedNames.filter((_, index) =>
+                !definitelyPresent.has(index) && !ambiguousExpected.has(index)
+            );
+            return { missing, extras, ambiguities };
+        }
+
         const fileInputs = [
             { input: document.getElementById("participantsFile"), drop: document.getElementById("participantsDrop"), name: document.getElementById("participantsName") },
             { input: document.getElementById("attendeesFile"), drop: document.getElementById("attendeesDrop"), name: document.getElementById("attendeesName") }
@@ -416,6 +450,7 @@
         const statusElement = document.getElementById("status");
         let missingNames = [];
         let extraNames = [];
+        let ambiguities = [];
 
         function setFile(slot, file) {
             if (!file) return;
@@ -467,17 +502,17 @@
             statusElement.textContent = "Checking files...";
             try {
                 const [participantsText, attendeesText] = await Promise.all(fileInputs.map(slot => slot.input.files[0].text()));
-                const expectedNames = [...new Set(extractExpectedNames(parseCsv(participantsText)))].sort();
+                const expectedNames = extractExpectedNames(parseCsv(participantsText)).sort();
                 const presentNames = [...new Set(extractAttendeeNames(parseCsv(attendeesText)))];
 
                 if (expectedNames.length === 0) throw new Error("No names found in the participant CSV.");
                 if (presentNames.length === 0) throw new Error("No names found in the attendance CSV.");
 
-                missingNames = expectedNames.filter(expected => !presentNames.some(present => namesMatch(expected, present)));
-                extraNames = presentNames.filter(present => !expectedNames.some(expected => namesMatch(expected, present)));
+                ({ missing: missingNames, extras: extraNames, ambiguities } =
+                    compareAttendance(expectedNames, presentNames));
 
-                renderResults(missingNames, extraNames);
-                statusElement.textContent = `Check complete: ${expectedNames.length} expected, ${presentNames.length} present.`;
+                renderResults(missingNames, extraNames, ambiguities);
+                statusElement.textContent = `Check complete: ${expectedNames.length} expected, ${presentNames.length} present, ${ambiguities.length} ambiguous matches.`;
             } catch (error) {
                 document.getElementById("results").style.display = "none";
                 showError(error instanceof Error ? error.message : "Could not read the CSVs.");
@@ -488,17 +523,19 @@
 
         compareButton.addEventListener("click", compareFiles);
 
-        function renderResults(missing, extras) {
+        function renderResults(missing, extras, ambiguousMatches) {
             const results = document.getElementById("results");
             const card = document.getElementById("resultsCard");
             const title = document.getElementById("resultsTitle");
             const list = document.getElementById("listOutput");
             const download = document.getElementById("downloadButton");
+            const ambiguityDownload = document.getElementById("ambiguityDownloadButton");
             const badge = document.getElementById("countBadge");
+            const hasResults = missing.length > 0 || extras.length > 0 || ambiguousMatches.length > 0;
 
-            badge.textContent = missing.length;
+            badge.textContent = missing.length || extras.length || ambiguousMatches.length;
 
-            if (missing.length === 0 && extras.length === 0) {
+            if (!hasResults) {
                 title.textContent = "✅ Perfect Match";
                 card.className = "results-card success";
                 badge.textContent = "0";
@@ -506,19 +543,24 @@
                 title.textContent = "❌ Missing Participants";
                 card.className = "results-card";
                 badge.textContent = missing.length;
-            } else {
+            } else if (extras.length > 0) {
                 title.textContent = "⚠️ Extras Found";
                 card.className = "results-card has-extras";
                 badge.textContent = extras.length;
+            } else if (ambiguousMatches.length > 0) {
+                title.textContent = "⚠️ Ambiguous Matches";
+                card.className = "results-card has-extras";
+                badge.textContent = ambiguousMatches.length;
             }
 
             list.replaceChildren();
 
-            if (missing.length === 0 && extras.length === 0) {
+            if (!hasResults) {
                 const item = document.createElement("li");
                 item.textContent = "Perfect match. Everyone expected was present, and no extras were found.";
                 list.appendChild(item);
                 download.style.display = "none";
+                ambiguityDownload.style.display = "none";
             } else {
                 if (missing.length > 0) {
                     const header = document.createElement("li");
@@ -544,7 +586,21 @@
                         list.appendChild(item);
                     });
                 }
-                download.style.display = "inline-block";
+
+                if (ambiguousMatches.length > 0) {
+                    const header = document.createElement("li");
+                    header.className = "list-header";
+                    header.innerHTML = "<strong>Ambiguous attendee names (not counted as confirmed present or missing):</strong>";
+                    list.appendChild(header);
+                    ambiguousMatches.forEach(match => {
+                        const item = document.createElement("li");
+                        item.textContent = `${match.attendeeName} → ${match.matchingParticipants}`;
+                        item.className = "extra-item";
+                        list.appendChild(item);
+                    });
+                }
+                download.style.display = missing.length > 0 || extras.length > 0 ? "inline-block" : "none";
+                ambiguityDownload.style.display = ambiguousMatches.length > 0 ? "inline-block" : "none";
             }
             results.style.display = "block";
         }
@@ -567,6 +623,29 @@
                 String(now.getDate()).padStart(2, "0")
             ].join("-");
             link.download = `missing_and_extras_${today}.csv`;
+
+            link.click();
+            URL.revokeObjectURL(url);
+        });
+
+        document.getElementById("ambiguityDownloadButton").addEventListener("click", () => {
+            const rows = ["Attendee Name,Matching Participants,Candidate Count"];
+            ambiguities.forEach(match => rows.push(
+                `"${match.attendeeName.replace(/"/g, '""')}","${match.matchingParticipants.replace(/"/g, '""')}",${match.candidateCount}`
+            ));
+
+            const csv = rows.join("\r\n");
+            const url = URL.createObjectURL(new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" }));
+            const link = document.createElement("a");
+            link.href = url;
+
+            const now = new Date();
+            const today = [
+                now.getFullYear(),
+                String(now.getMonth() + 1).padStart(2, "0"),
+                String(now.getDate()).padStart(2, "0")
+            ].join("-");
+            link.download = `ambiguities_${today}.csv`;
 
             link.click();
             URL.revokeObjectURL(url);
