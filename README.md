@@ -7,7 +7,7 @@
 </p>
 
 <p align="left">
-  <strong><a href="https://shavalads.github.io/attendance-checker/">Try it on your browser →</a></strong>
+  <strong><a href="https://shavalads.github.io/attendance-checker/Attendance_Checker.html">Try it on your browser →</a></strong>
 </p>
 
 Ever spent your evening cross-referencing a Zoom export against an official participant list, only to realize you missed three people? We've all been there.
