@@ -1,4 +1,14 @@
+<img width="1350" height="608" alt="attendancechecker" src="https://github.com/user-attachments/assets/f36af231-5217-4fba-a08f-cb4b0d6b68e1" />
+
 # 🚀 Attendance Checker — Stop Wasting Hours on Manual Checks
+
+<p align="left">
+  <img src="attendancechecker.gif" alt="Demo of the Attendance Checker web interface: dragging two CSV files into the browser and instantly getting a report of missing and extra participants." width="700">
+</p>
+
+<p align="left">
+  <strong><a href="https://shavalads.github.io/attendance-checker/">Try it on your browser →</a></strong>
+</p>
 
 Ever spent your evening cross-referencing a Zoom export against an official participant list, only to realize you missed three people? We've all been there.
 
@@ -6,35 +16,49 @@ Attendance Checker takes the bulk of the work out of attendance verification in 
 
 ---
 
-### ⚡ Two Ways to Use It (Choose Your Vibe)
+### ⚡ Two Ways to Use It
 
 **Option A: The Web App (Recommended for Trainers)**
 No installation. No terminal. No data leaves your computer.
-1. 📂 Double-click **`Attendance_Checker.html`** — it will open in your default browser.
+1. 📂 Open the **[Attendance Checker Web App](https://shavalads.github.io/attendance-checker/)** in your browser.
 2. 🖱️ Drag your participant list and Zoom export onto the drop zones.
 3. 📋 Click "Check Attendance" and download your report instantly.
 
 **Option B: The CLI (For Developers & Power Users)**
 1. 📂 Drop your files in `1_Participants/` and `2_Attendees/`.
 2. ▶️ Run `python main.py`.
-3. 📋 Find your results in **`3_Missing_and_Extras/`** — you'll get a `missing_YYYY-MM-DD.csv` and an `extras_YYYY-MM-DD.csv`, both dated and ready to share.
+3. 📋 Find your results in **`3_Missing_and_Extras/`** — you'll get a `missing_YYYY-MM-DD.csv` and an `extras_YYYY-MM-DD.csv`.
 
 *Both paths use the **same matching engine**. Choose the one that fits your workflow.*
 
 ---
 
-### 🧠 Smart Logic — Embracing Human Unpredictability
+### 🧠 Smart Logic — What It Does Well
 
-This isn't a dumb comparison. Attendance Checker absorbs the messy reality of human data and the unpredictability of real meetings:
+This isn't a dumb comparison. Attendance Checker is explicitly designed to absorb the messy reality of human data:
 
-*   **Case & whitespace** — inconsistent capitalization and hidden spaces.
-*   **Punctuation** — names written with dots (e.g. `mario.rossi` → `mario rossi`).
-*   **Partial & abbreviated names** — *"Mario R."* matches *"Mario Rossi"* thanks to the new initials logic.
-*   **Compound names** — *"Anna Bonito"* matches *"Anna Luisa Bonito"*.
-*   **Token-based similarity** — names compared word by word, so a match is found whenever enough tokens overlap.
-*   **The "Extras" catch** — people who joined the call but weren't on the official list (guests, colleagues dropping by, wrong links) are flagged separately in the same report folder, so you don't miss them.
+*   **Case & whitespace** — inconsistent capitalization and hidden spaces are normalized (e.g., `MARIO ROSSI` and `  mario rossi ` are treated as the same).
+*   **Punctuation & accents** — dots, hyphens, slashes, and accented characters are removed or flattened (e.g., `Niccolò` → `niccolo`, `mario.rossi` → `mario rossi`).
+*   **Single initials** — *"Mario R."* matches *"Mario Rossi"*. The logic detects when a short token (1 character) is the prefix of a longer token, provided at least one other token matches.
+*   **Compound names (partial)** — *"Giulia Bianchi"* matches *"Giulia Maria Bianchi"*, as long as the shorter name is a subset of the longer one.
+*   **Token-based similarity** — names are split into words and compared. A match is found if at least two tokens overlap, or if one set of tokens is entirely contained in the other.
+*   **The "Extras" catch** — people who joined the call but weren't on the official list are flagged separately in the same output, so you never miss them.
 
-✅ **Real-World Tested:** Battle-tested on real data. It handles nicknames, misspellings, abbreviations, and all the creative ways people type their own names. The result: manual reconciliation work cut by ~90%.
+✅ **Real-World Tested:** Battle-tested on real data. The matching logic has reduced manual reconciliation work by roughly 90% in day-to-day use.
+
+---
+
+### ⚠️ Known Limitations
+
+To keep the tool lightweight, dependency-free, and easy to audit, we deliberately excluded some advanced matching techniques. Here is what the current version does **not** handle:
+
+*   **Nicknames** (*"Bob"* vs *"Robert"*, *"Gianni"* vs *"Giovanni"*) — requires a custom dictionary or an external library.
+*   **Typos** (*"Mario Rosi"* vs *"Mario Rossi"*) — requires Levenshtein distance or fuzzy string matching.
+*   **Multiple initials** (*"M. R."* vs *"Mario Rossi"*) — the current logic only matches a single initial against a longer token.
+*   **Non-Latin scripts** (Chinese, Arabic, Cyrillic) — the normalization pipeline strips non-ASCII characters, meaning names in these scripts become empty strings and are ignored.
+*   **Particles attached to surnames** (*"DeLuca"* vs *"De Luca"*) — treated as different tokens. Not normalized.
+
+These limitations are intentional trade-offs. The goal was to solve 90% of real-world cases with a transparent, easily understandable matching engine — not to build a full-blown entity resolution system.
 
 ---
 
@@ -81,11 +105,11 @@ This iterative, multi-model approach dramatically accelerated development. It di
 
 ### 🔮 Future Iterations & Scope
 
-*   **UI/UX Refinements in the Web App** — the current interface is a first iteration focused on functional validation. Future updates will focus on improving visual feedback (e.g., loading states, error handling), accessibility, and the overall look and feel to make the browser experience even more seamless and intuitive.
-*   **Localization (i18n)** — the UI is currently in English, but the target audience is global. Translating the interface (and the generated filenames) into other languages will make the tool accessible to non-English-speaking trainers. This feature will be prioritized based on user interviews with international training teams.
-*   **Manual override in the Web UI** — allow users to correct fuzzy matches on the fly.
+*   **Fuzzy Matching 2.0** — introduce Levenshtein distance for typos, a lightweight nickname dictionary, and support for multiple initials (e.g., "M. R." vs "Mario Rossi").
+*   **Internationalization (i18n)** — the UI is currently in English. Localizing the interface (and generated filenames) will make the tool accessible to non-English-speaking trainers.
+*   **Manual Override in the Web UI** — allow users to review and correct fuzzy matches directly in the browser before downloading the report.
 *   **The "Zero-Touch" Workflow** — direct API integrations with Zoom and Google Sheets, background execution, and smart notifications only when anomalies are detected.
-*   **Automated reports** — auto-generate PDF attendance certificates for those who match the criteria.
+*   **Automated Reports** — auto-generate PDF attendance certificates for participants who meet predefined criteria.
 
 ---
 
@@ -101,4 +125,3 @@ pip install -r requirements.txt
 
 # 2. Run the checker
 python main.py
-
