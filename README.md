@@ -10,11 +10,11 @@ Attendance Checker takes the bulk of the work out of attendance verification in 
 
 ---
 
-### ⚡ Two Ways to Use It (Choose Your Vibe)
+### ⚡ Two Ways to Use It
 
 **Option A: The Web App (Recommended)**
 No installation. No terminal. No data leaves your computer.
-1. 📂 Open `index.html` in your browser (or use the live link if available).
+1. 📂 Open `index.html` in your browser (or use the live link).
 2. 🖱️ Drag your participant list and Zoom export onto the drop zones.
 3. 📋 Click "Check Attendance" and download your missing-attendees CSV instantly.
 
@@ -70,6 +70,29 @@ This iterative, multi-model approach dramatically accelerated development. It di
 
 ---
 
+### 🎯 Scope
+
+**In:** Manual file upload (Web), folder drop (CLI), fuzzy matching, browser-based privacy.
+
+**Out:** 
+*   **API Integrations** — Maintaining OAuth tokens and rate limits would turn a lightweight utility into fragile infrastructure. CSV is the universal interface.
+*   **Manual overrides in the UI** — For now, fix edge cases directly in the downloaded CSV.
+
+---
+
+### 🛠️ Tech Stack
+
+*   **HTML/CSS/JS** — zero-dependency, client-side interface.
+*   **Python & Pandas** — for the CLI version and robust CSV handling.
+
+---
+
+*Sample files (`example_participants.csv` and `example_attendees.csv`) are included so you can test the tool without real data.*
+
+Built with ❤️ by a Product Designer exploring the intersection of Design and AI. If this saved you time, ⭐ the repo and share it with your team!
+
+---
+
 ### 🚀 Quick Start (CLI)
 
 ```bash
@@ -78,3 +101,4 @@ pip install -r requirements.txt
 
 # 2. Run the checker
 python main.py
+
